@@ -78,8 +78,7 @@ const topUpBtn = document.getElementById('topUpBtn');
 const gamesBar = document.getElementById('gamesBar');
 const gameSections = {
   blackjack: document.getElementById('blackjackGame'),
-  redblack: document.getElementById('redblackGame'),
-  dice: document.getElementById('diceGame')
+  redblack: document.getElementById('redblackGame')
 };
 
 const historyBody = document.getElementById('historyBody');
@@ -501,92 +500,202 @@ function finishBjRound() {
 }
 
 // ============================================================
-// ROULETTE (European, 0-36)
+// ROULETTE (American, 0-36 + 00)
 // ============================================================
 const rbBetInput = document.getElementById('rbBetInput');
 const rbChipRow = document.getElementById('rbChipRow');
-const rbOptions = document.querySelectorAll('.rb-option');
 const rbSpinBtn = document.getElementById('rbSpinBtn');
+const rbClearBtn = document.getElementById('rbClearBtn');
 const rbResult = document.getElementById('rbResult');
 const rouletteWheel = document.getElementById('rouletteWheel');
 const rouletteBall = document.getElementById('rouletteBall');
 const rouletteCenterNumber = document.getElementById('rouletteCenterNumber');
-const rouletteTable = document.getElementById('rouletteTable');
+const rouletteTableUS = document.getElementById('rouletteTableUS');
+const rbCurrentBetLabel = document.getElementById('rbCurrentBetLabel');
 
 chipRowHandler(rbChipRow, rbBetInput);
 
-// European roulette wheel order (0-36) as laid out on a real wheel
-const WHEEL_ORDER = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+// American roulette wheel order (0, 1-36, 00) as laid out on a real double-zero wheel
+const WHEEL_ORDER = [0, 28, 9, 26, 30, 11, 7, 20, 32, 17, 5, 22, 34, 15, 3, 24, 36, 13, 1, '00', 27, 10, 25, 29, 12, 8, 19, 31, 18, 6, 21, 33, 16, 4, 23, 35, 14, 2];
 const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 
 function numberColor(n) {
-  if (n === 0) return 'green';
+  if (n === 0 || n === '00') return 'green';
   return RED_NUMBERS.has(n) ? 'red' : 'black';
 }
 
-// build the mini table grid (0 + 1..36 in 3 columns like a real roulette table)
-function buildRouletteTable() {
-  rouletteTable.innerHTML = '';
-  const zero = document.createElement('div');
-  zero.className = 'roulette-cell green';
-  zero.style.gridColumn = '1 / span 13';
-  zero.textContent = '0';
-  zero.setAttribute('data-num', '0');
-  rouletteTable.appendChild(zero);
+// bet type -> { numbers: [...], payout: multiplier }
+let rbBets = {}; // key -> amount staked on that bet key
 
-  for (let n = 1; n <= 36; n++) {
-    const cell = document.createElement('div');
-    cell.className = 'roulette-cell ' + numberColor(n);
-    cell.textContent = n;
-    cell.setAttribute('data-num', n);
-    rouletteTable.appendChild(cell);
-  }
+function betNumbers(key) {
+  if (key.startsWith('n:')) return [key === 'n:00' ? '00' : parseInt(key.slice(2), 10)];
+  if (key === 'red') return [...Array(37).keys()].filter(n => n > 0 && RED_NUMBERS.has(n));
+  if (key === 'black') return [...Array(37).keys()].filter(n => n > 0 && !RED_NUMBERS.has(n));
+  if (key === 'even') return [...Array(37).keys()].filter(n => n > 0 && n % 2 === 0);
+  if (key === 'odd') return [...Array(37).keys()].filter(n => n > 0 && n % 2 === 1);
+  if (key === 'low') return [...Array(19).keys()].filter(n => n >= 1 && n <= 18);
+  if (key === 'high') return [...Array(37).keys()].filter(n => n >= 19 && n <= 36);
+  if (key === 'dozen1') return [...Array(37).keys()].filter(n => n >= 1 && n <= 12);
+  if (key === 'dozen2') return [...Array(37).keys()].filter(n => n >= 13 && n <= 24);
+  if (key === 'dozen3') return [...Array(37).keys()].filter(n => n >= 25 && n <= 36);
+  if (key === 'col1') return [...Array(37).keys()].filter(n => n > 0 && n % 3 === 1);
+  if (key === 'col2') return [...Array(37).keys()].filter(n => n > 0 && n % 3 === 2);
+  if (key === 'col3') return [...Array(37).keys()].filter(n => n > 0 && n % 3 === 0);
+  return [];
 }
-buildRouletteTable();
 
-let rbSelectedColor = null;
-rbOptions.forEach(opt => {
-  opt.addEventListener('click', () => {
-    rbSelectedColor = opt.getAttribute('data-color');
-    rbOptions.forEach(o => o.classList.toggle('selected', o === opt));
+function betPayout(key) {
+  if (key.startsWith('n:')) return 35;
+  if (['dozen1', 'dozen2', 'dozen3', 'col1', 'col2', 'col3'].includes(key)) return 2;
+  return 1; // red/black/even/odd/low/high
+}
+
+// build American roulette betting table (0, 00, 1-36 grid + outside bets)
+function buildRouletteTableUS() {
+  rouletteTableUS.innerHTML = '';
+
+  const zeros = document.createElement('div');
+  zeros.className = 'rt-zeros';
+  const zero0 = makeNumCell(0, 'n:0');
+  const zero00 = makeNumCell('00', 'n:00');
+  zeros.appendChild(zero0);
+  zeros.appendChild(zero00);
+  rouletteTableUS.appendChild(zeros);
+
+  const grid = document.createElement('div');
+  grid.className = 'rt-grid';
+  for (let row = 0; row < 12; row++) {
+    for (let col = 2; col >= 0; col--) {
+      const n = row * 3 + col + 1;
+      grid.appendChild(makeNumCell(n, 'n:' + n));
+    }
+  }
+  rouletteTableUS.appendChild(grid);
+
+  const columnsCol = document.createElement('div');
+  columnsCol.className = 'rt-2to1-col';
+  ['col3', 'col2', 'col1'].forEach(key => {
+    columnsCol.appendChild(makeOutsideCell('2 to 1', key));
   });
+  rouletteTableUS.appendChild(columnsCol);
+
+  const dozens = document.createElement('div');
+  dozens.className = 'rt-dozens';
+  dozens.appendChild(makeOutsideCell(t('rbDozen1'), 'dozen1'));
+  dozens.appendChild(makeOutsideCell(t('rbDozen2'), 'dozen2'));
+  dozens.appendChild(makeOutsideCell(t('rbDozen3'), 'dozen3'));
+  rouletteTableUS.appendChild(dozens);
+
+  const outside = document.createElement('div');
+  outside.className = 'rt-outside';
+  outside.appendChild(makeOutsideCell(t('rbLow'), 'low'));
+  outside.appendChild(makeOutsideCell(t('rbEven'), 'even'));
+  outside.appendChild(makeOutsideCell('♦', 'red', 'red'));
+  outside.appendChild(makeOutsideCell('♠', 'black', 'black'));
+  outside.appendChild(makeOutsideCell(t('rbOdd'), 'odd'));
+  outside.appendChild(makeOutsideCell(t('rbHigh'), 'high'));
+  rouletteTableUS.appendChild(outside);
+}
+
+function makeNumCell(n, key) {
+  const cell = document.createElement('div');
+  cell.className = 'rt-num ' + numberColor(n) + (n === 0 || n === '00' ? ' rt-zero' : '');
+  cell.textContent = n;
+  cell.setAttribute('data-key', key);
+  cell.setAttribute('data-num', n);
+  cell.appendChild(chipBadge(key));
+  cell.addEventListener('click', () => placeBetOnKey(key));
+  return cell;
+}
+
+function makeOutsideCell(label, key, colorClass) {
+  const cell = document.createElement('div');
+  cell.className = 'rt-outside-cell' + (colorClass ? ' ' + colorClass : '');
+  cell.textContent = label;
+  cell.setAttribute('data-key', key);
+  cell.appendChild(chipBadge(key));
+  cell.addEventListener('click', () => placeBetOnKey(key));
+  return cell;
+}
+
+function chipBadge(key) {
+  const badge = document.createElement('span');
+  badge.className = 'rt-chip-badge hidden';
+  badge.setAttribute('data-badge-for', key);
+  return badge;
+}
+
+function placeBetOnKey(key) {
+  const amount = parseFloat(rbBetInput.value);
+  if (isNaN(amount) || amount <= 0) {
+    rbResult.textContent = t('placeBetFirst');
+    rbResult.style.color = 'var(--profit-neg)';
+    return;
+  }
+  const totalStaked = Object.values(rbBets).reduce((s, v) => s + v, 0);
+  if (totalStaked + amount > state.balance) {
+    rbResult.textContent = t('notEnoughBalance');
+    rbResult.style.color = 'var(--profit-neg)';
+    return;
+  }
+  rbBets[key] = (rbBets[key] || 0) + amount;
+  renderRbBets();
+}
+
+function renderRbBets() {
+  rouletteTableUS.querySelectorAll('.rt-chip-badge').forEach(b => {
+    const key = b.getAttribute('data-badge-for');
+    if (rbBets[key]) {
+      b.textContent = formatMoney(rbBets[key]);
+      b.classList.remove('hidden');
+    } else {
+      b.classList.add('hidden');
+    }
+  });
+  const total = Object.values(rbBets).reduce((s, v) => s + v, 0);
+  rbCurrentBetLabel.textContent = total > 0 ? t('rbTotalBet', { amount: formatMoney(total) }) : '';
+}
+
+buildRouletteTableUS();
+
+rbClearBtn.addEventListener('click', () => {
+  rbBets = {};
+  renderRbBets();
+  rbResult.textContent = '';
 });
 
 let rbWheelRotation = 0;
 let rbBallRotation = 0;
 
 rbSpinBtn.addEventListener('click', () => {
-  const bet = parseFloat(rbBetInput.value);
-  if (isNaN(bet) || bet <= 0) {
-    rbResult.textContent = t('placeBetFirst');
-    return;
-  }
-  if (!rbSelectedColor) {
+  const totalStaked = Object.values(rbBets).reduce((s, v) => s + v, 0);
+  if (totalStaked <= 0) {
     rbResult.textContent = t('rbPickTitle');
+    rbResult.style.color = 'var(--profit-neg)';
     return;
   }
-  if (bet > state.balance) {
+  if (totalStaked > state.balance) {
     rbResult.textContent = t('notEnoughBalance');
     return;
   }
 
-  state.balance -= bet;
+  state.balance -= totalStaked;
   renderBalance();
   saveState();
 
   rbSpinBtn.disabled = true;
+  rbClearBtn.disabled = true;
   rbResult.textContent = t('rbSpinning');
   rbResult.style.color = 'var(--muted)';
   rouletteWheel.classList.add('spinning');
   rouletteCenterNumber.textContent = '?';
-  rouletteTable.querySelectorAll('.roulette-cell').forEach(c => c.classList.remove('highlight'));
+  rouletteTableUS.querySelectorAll('.rt-num').forEach(c => c.classList.remove('highlight'));
 
-  // pick winning number
-  const winningNumber = Math.floor(Math.random() * 37);
+  // pick winning number (0-36 + 00), each equally likely among 38 slots
+  const winningNumber = WHEEL_ORDER[Math.floor(Math.random() * WHEEL_ORDER.length)];
   const segmentAngle = 360 / WHEEL_ORDER.length;
   const winningIndex = WHEEL_ORDER.indexOf(winningNumber);
 
-  // spin wheel several full turns and land the winning segment at the top pointer
   const wheelExtraTurns = 4 + Math.floor(Math.random() * 3);
   const targetWheelAngle = -(winningIndex * segmentAngle);
   rbWheelRotation += 360 * wheelExtraTurns;
@@ -594,7 +703,6 @@ rbSpinBtn.addEventListener('click', () => {
   rbWheelRotation = finalWheelRotation;
   rouletteWheel.style.transform = `rotate(${rbWheelRotation}deg)`;
 
-  // ball spins opposite direction, several turns
   const ballExtraTurns = 6 + Math.floor(Math.random() * 3);
   rbBallRotation += 360 * ballExtraTurns + (Math.random() * 360);
   rouletteBall.style.transform = `rotate(${rbBallRotation}deg) translateX(0)`;
@@ -603,126 +711,40 @@ rbSpinBtn.addEventListener('click', () => {
     rouletteWheel.classList.remove('spinning');
     rouletteCenterNumber.textContent = winningNumber;
 
-    const outcome = numberColor(winningNumber);
-    const cell = rouletteTable.querySelector(`.roulette-cell[data-num="${winningNumber}"]`);
+    const cell = rouletteTableUS.querySelector(`.rt-num[data-num="${winningNumber}"]`);
     if (cell) cell.classList.add('highlight');
 
-    let delta;
+    let totalPayout = 0;
+    let totalDelta;
+    Object.keys(rbBets).forEach(key => {
+      const nums = betNumbers(key);
+      if (nums.includes(winningNumber)) {
+        const stake = rbBets[key];
+        const payout = betPayout(key);
+        totalPayout += stake + stake * payout;
+      }
+    });
+    totalDelta = totalPayout - totalStaked;
+    state.balance += totalPayout;
+
+    const outcome = numberColor(winningNumber);
     const colorLabel = t('color' + outcome.charAt(0).toUpperCase() + outcome.slice(1));
 
-    if (outcome === rbSelectedColor) {
-      const multiplier = outcome === 'green' ? 14 : 2;
-      delta = bet * multiplier - bet;
-      state.balance += bet * multiplier;
-      rbResult.textContent = t('rbWin', { number: winningNumber, color: colorLabel }) + ` (+${formatMoney(delta)})`;
+    if (totalDelta > 0) {
+      rbResult.textContent = t('rbWin', { number: winningNumber, color: colorLabel }) + ` (+${formatMoney(totalDelta)})`;
       rbResult.style.color = 'var(--profit-pos)';
     } else {
-      delta = -bet;
       rbResult.textContent = t('rbLose', { number: winningNumber, color: colorLabel });
       rbResult.style.color = 'var(--profit-neg)';
     }
 
     renderBalance();
-    addHistory('redblack', t('tabRedBlack'), bet, rbResult.textContent, delta);
+    addHistory('redblack', t('tabRedBlack'), totalStaked, rbResult.textContent, totalDelta);
+    rbBets = {};
+    renderRbBets();
     rbSpinBtn.disabled = false;
+    rbClearBtn.disabled = false;
   }, 3300);
-});
-
-// ============================================================
-// DICE
-// ============================================================
-const diceBetInput = document.getElementById('diceBetInput');
-const diceChipRow = document.getElementById('diceChipRow');
-const diceOptionsEl = document.getElementById('diceOptions');
-const diceRollBtn = document.getElementById('diceRollBtn');
-const die1 = document.getElementById('die1');
-const die2 = document.getElementById('die2');
-const diceResult = document.getElementById('diceResult');
-
-chipRowHandler(diceChipRow, diceBetInput);
-
-const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-
-const DICE_PAYOUTS = {
-  2: 30, 3: 15, 4: 10, 5: 7, 6: 5, 7: 4, 8: 5, 9: 7, 10: 10, 11: 15, 12: 30
-};
-
-let diceSelected = null;
-
-function buildDiceOptions() {
-  diceOptionsEl.innerHTML = '';
-  for (let sum = 2; sum <= 12; sum++) {
-    const btn = document.createElement('div');
-    btn.className = 'dice-option';
-    btn.setAttribute('data-sum', sum);
-    btn.textContent = `${sum} (x${DICE_PAYOUTS[sum]})`;
-    btn.addEventListener('click', () => {
-      diceSelected = sum;
-      diceOptionsEl.querySelectorAll('.dice-option').forEach(el => {
-        el.classList.toggle('selected', el === btn);
-      });
-    });
-    diceOptionsEl.appendChild(btn);
-  }
-}
-buildDiceOptions();
-
-diceRollBtn.addEventListener('click', () => {
-  const bet = parseFloat(diceBetInput.value);
-  if (isNaN(bet) || bet <= 0) {
-    diceResult.textContent = t('placeBetFirst');
-    return;
-  }
-  if (diceSelected == null) {
-    diceResult.textContent = t('diceTitle');
-    return;
-  }
-  if (bet > state.balance) {
-    diceResult.textContent = t('notEnoughBalance');
-    return;
-  }
-
-  state.balance -= bet;
-  renderBalance();
-  saveState();
-
-  diceRollBtn.disabled = true;
-  die1.classList.add('rolling');
-  die2.classList.add('rolling');
-
-  let ticks = 0;
-  const rollInterval = setInterval(() => {
-    die1.textContent = DICE_FACES[Math.floor(Math.random() * 6)];
-    die2.textContent = DICE_FACES[Math.floor(Math.random() * 6)];
-    ticks++;
-    if (ticks > 8) {
-      clearInterval(rollInterval);
-      const roll1 = 1 + Math.floor(Math.random() * 6);
-      const roll2 = 1 + Math.floor(Math.random() * 6);
-      die1.textContent = DICE_FACES[roll1 - 1];
-      die2.textContent = DICE_FACES[roll2 - 1];
-      die1.classList.remove('rolling');
-      die2.classList.remove('rolling');
-
-      const sum = roll1 + roll2;
-      let delta;
-      if (sum === diceSelected) {
-        const multiplier = DICE_PAYOUTS[sum];
-        delta = bet * multiplier - bet;
-        state.balance += bet * multiplier;
-        diceResult.textContent = t('diceWin', { sum }) + ` (+${formatMoney(delta)})`;
-        diceResult.style.color = 'var(--profit-pos)';
-      } else {
-        delta = -bet;
-        diceResult.textContent = t('diceLose', { sum });
-        diceResult.style.color = 'var(--profit-neg)';
-      }
-
-      renderBalance();
-      addHistory('dice', t('tabDice'), bet, diceResult.textContent, delta);
-      diceRollBtn.disabled = false;
-    }
-  }, 80);
 });
 
 // ---------- Animated background particles ----------

@@ -117,7 +117,7 @@ body {
 .app {
   max-width: 960px;
   margin: 0 auto;
-  padding: 24px 16px 100px;
+  padding: 24px 16px 40px;
 }
 
 .top-header {
@@ -365,26 +365,9 @@ tbody tr:hover { background: rgba(128,128,128,0.06); }
   padding: 20px 0 0;
 }
 
-.total-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--card-bg);
-  border-top: 1px solid var(--card-border);
-  padding: 16px 20px;
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  align-items: baseline;
-  font-size: 16px;
-  z-index: 4;
-}
-
 .total-sum {
   font-size: 22px;
   font-weight: 700;
-  color: var(--profit-pos);
 }
 
 /* ---- Bet controls (shared) ---- */
@@ -510,124 +493,13 @@ body[data-theme="light"] .bj-table {
   min-height: 26px;
 }
 
-/* ---- Red/Black (roulette-lite) ---- */
-.rb-wheel {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.rb-option {
-  width: 120px;
-  height: 100px;
-  border-radius: 12px;
-  border: 3px solid var(--card-border);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
+.rb-current-bet {
+  text-align: center;
+  color: var(--gold);
+  font-size: 14px;
   font-weight: 700;
-  font-size: 15px;
-  color: #fff;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.rb-option:hover { transform: translateY(-3px); }
-
-.rb-option.selected {
-  box-shadow: 0 0 0 3px var(--gold);
-}
-
-.rb-option.red { background: linear-gradient(160deg, #dc2626, #7f1d1d); }
-.rb-option.black { background: linear-gradient(160deg, #1f2937, #000000); }
-.rb-option.green { background: linear-gradient(160deg, #16a34a, #14532d); }
-
-.rb-result-ball {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  margin: 0 auto 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  font-weight: 800;
-  color: #fff;
-  border: 3px solid rgba(255,255,255,0.4);
-  transition: transform 0.4s cubic-bezier(.4,0,.2,1);
-}
-
-.rb-result-ball.spin { animation: rb-spin 0.6s linear; }
-
-@keyframes rb-spin {
-  from { transform: rotate(0deg) scale(1.1); }
-  to { transform: rotate(720deg) scale(1); }
-}
-
-.rb-result-ball.red { background: #dc2626; }
-.rb-result-ball.black { background: #1f2937; }
-.rb-result-ball.green { background: #16a34a; }
-
-/* ---- Dice game ---- */
-.dice-row {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.die {
-  width: 72px;
-  height: 72px;
-  background: #fff;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 34px;
-  font-weight: 800;
-  color: #111827;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
-  transition: transform 0.5s cubic-bezier(.4,0,.2,1);
-}
-
-.die.rolling { animation: die-roll 0.5s ease; }
-
-@keyframes die-roll {
-  0% { transform: rotate(0deg); }
-  50% { transform: rotate(180deg) scale(1.1); }
-  100% { transform: rotate(360deg); }
-}
-
-.dice-options {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-
-.dice-option {
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: 2px solid var(--card-border);
-  background: var(--card-bg);
-  color: var(--text-main);
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 13px;
-  transition: all 0.15s ease;
-}
-
-.dice-option:hover { border-color: var(--accent); }
-.dice-option.selected {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+  min-height: 20px;
+  margin: 0 0 14px;
 }
 
 /* ---- Auth screen ---- */
@@ -719,27 +591,44 @@ body[data-theme="light"] .bj-table {
 .balance-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 20px;
   background: linear-gradient(135deg, rgba(250,204,21,0.12), rgba(37,99,235,0.08));
   border: 1px solid var(--gold);
 }
 
+.balance-bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.balance-bar-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--card-border);
+}
+
 .balance-bar-label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  text-align: center;
 }
 
 .balance-bar-value {
   font-size: 26px;
   font-weight: 800;
   color: var(--gold);
-  flex: 1;
   text-align: center;
-  min-width: 160px;
+}
+
+.total-sum-value {
+  color: var(--profit-pos);
 }
 
 /* ---- Roulette table & wheel ---- */
@@ -762,43 +651,44 @@ body[data-theme="light"] .bj-table {
   height: 220px;
   border-radius: 50%;
   background: conic-gradient(
-    #16a34a 0deg 9.73deg,
-    #1f2937 9.73deg 19.46deg,
-    #dc2626 19.46deg 29.19deg,
-    #1f2937 29.19deg 38.92deg,
-    #dc2626 38.92deg 48.65deg,
-    #1f2937 48.65deg 58.38deg,
-    #dc2626 58.38deg 68.11deg,
-    #1f2937 68.11deg 77.84deg,
-    #dc2626 77.84deg 87.57deg,
-    #1f2937 87.57deg 97.3deg,
-    #dc2626 97.3deg 107.03deg,
-    #1f2937 107.03deg 116.76deg,
-    #dc2626 116.76deg 126.49deg,
-    #1f2937 126.49deg 136.22deg,
-    #dc2626 136.22deg 145.95deg,
-    #1f2937 145.95deg 155.68deg,
-    #dc2626 155.68deg 165.41deg,
-    #1f2937 165.41deg 175.14deg,
-    #dc2626 175.14deg 184.87deg,
-    #1f2937 184.87deg 194.6deg,
-    #dc2626 194.6deg 204.33deg,
-    #1f2937 204.33deg 214.06deg,
-    #dc2626 214.06deg 223.79deg,
-    #1f2937 223.79deg 233.52deg,
-    #dc2626 233.52deg 243.25deg,
-    #1f2937 243.25deg 252.98deg,
-    #dc2626 252.98deg 262.71deg,
-    #1f2937 262.71deg 272.44deg,
-    #dc2626 272.44deg 282.17deg,
-    #1f2937 282.17deg 291.9deg,
-    #dc2626 291.9deg 301.63deg,
-    #1f2937 301.63deg 311.36deg,
-    #dc2626 311.36deg 321.09deg,
-    #1f2937 321.09deg 330.82deg,
-    #dc2626 330.82deg 340.55deg,
-    #1f2937 340.55deg 350.28deg,
-    #dc2626 350.28deg 360deg
+    #16a34a 0.0000deg 9.4737deg,
+    #1f2937 9.4737deg 18.9474deg,
+    #dc2626 18.9474deg 28.4211deg,
+    #1f2937 28.4211deg 37.8947deg,
+    #dc2626 37.8947deg 47.3684deg,
+    #1f2937 47.3684deg 56.8421deg,
+    #dc2626 56.8421deg 66.3158deg,
+    #1f2937 66.3158deg 75.7895deg,
+    #dc2626 75.7895deg 85.2632deg,
+    #1f2937 85.2632deg 94.7368deg,
+    #dc2626 94.7368deg 104.2105deg,
+    #1f2937 104.2105deg 113.6842deg,
+    #dc2626 113.6842deg 123.1579deg,
+    #1f2937 123.1579deg 132.6316deg,
+    #dc2626 132.6316deg 142.1053deg,
+    #1f2937 142.1053deg 151.5789deg,
+    #dc2626 151.5789deg 161.0526deg,
+    #1f2937 161.0526deg 170.5263deg,
+    #dc2626 170.5263deg 180.0000deg,
+    #16a34a 180.0000deg 189.4737deg,
+    #dc2626 189.4737deg 198.9474deg,
+    #1f2937 198.9474deg 208.4211deg,
+    #dc2626 208.4211deg 217.8947deg,
+    #1f2937 217.8947deg 227.3684deg,
+    #dc2626 227.3684deg 236.8421deg,
+    #1f2937 236.8421deg 246.3158deg,
+    #dc2626 246.3158deg 255.7895deg,
+    #1f2937 255.7895deg 265.2632deg,
+    #dc2626 265.2632deg 274.7368deg,
+    #1f2937 274.7368deg 284.2105deg,
+    #dc2626 284.2105deg 293.6842deg,
+    #1f2937 293.6842deg 303.1579deg,
+    #dc2626 303.1579deg 312.6316deg,
+    #1f2937 312.6316deg 322.1053deg,
+    #dc2626 322.1053deg 331.5789deg,
+    #1f2937 331.5789deg 341.0526deg,
+    #dc2626 341.0526deg 350.5263deg,
+    #1f2937 350.5263deg 360.0000deg
   );
   border: 6px solid #7a4a1f;
   box-shadow: 0 0 0 4px #3f2d00, 0 10px 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.5);
@@ -844,38 +734,115 @@ body[data-theme="light"] .bj-table {
   box-shadow: 0 0 14px rgba(250,204,21,0.4);
 }
 
-.roulette-table {
+/* ---- American roulette betting table ---- */
+.roulette-table-wrap {
   width: 100%;
-  max-width: 480px;
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.roulette-table-us {
   display: grid;
-  grid-template-columns: repeat(13, 1fr);
+  grid-template-columns: 60px repeat(12, 1fr) 60px;
+  grid-template-rows: repeat(3, 44px) 30px 34px;
   gap: 2px;
   background: #063019;
   border: 4px solid #7a4a1f;
   border-radius: 10px;
   padding: 6px;
+  min-width: 640px;
 }
 
-.roulette-cell {
-  aspect-ratio: 1;
+.rt-zeros {
+  grid-column: 1 / 2;
+  grid-row: 1 / 4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rt-grid {
+  grid-column: 2 / 14;
+  grid-row: 1 / 4;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  grid-auto-flow: column;
+  gap: 2px;
+}
+
+.rt-2to1-col {
+  grid-column: 14 / 15;
+  grid-row: 1 / 4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rt-num, .rt-outside-cell, .rt-2to1-col > div {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   color: #fff;
   border-radius: 3px;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  user-select: none;
 }
 
-.roulette-cell.red { background: #b91c1c; }
-.roulette-cell.black { background: #111827; }
-.roulette-cell.green { background: #15803d; }
+.rt-num:hover, .rt-outside-cell:hover { filter: brightness(1.25); z-index: 3; }
 
-.roulette-cell.highlight {
+.rt-num.red { background: #b91c1c; }
+.rt-num.black { background: #111827; }
+.rt-num.green, .rt-zero { background: #15803d; }
+
+.rt-num.highlight {
   box-shadow: 0 0 0 2px var(--gold), 0 0 12px rgba(250,204,21,0.8);
-  transform: scale(1.15);
-  z-index: 2;
+  transform: scale(1.12);
+  z-index: 4;
+}
+
+.rt-dozens {
+  grid-column: 2 / 14;
+  grid-row: 4 / 5;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.rt-outside {
+  grid-column: 2 / 14;
+  grid-row: 5 / 6;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+}
+
+.rt-outside-cell {
+  background: #0d4d2b;
+  font-size: 12px;
+}
+
+.rt-outside-cell.red { background: linear-gradient(160deg, #dc2626, #7f1d1d); }
+.rt-outside-cell.black { background: linear-gradient(160deg, #1f2937, #000000); }
+
+.rt-chip-badge {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  background: var(--gold);
+  color: #3f2d00;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 5px;
+  border-radius: 8px;
+  border: 1px solid #7a4a1f;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  z-index: 5;
 }
 
 @keyframes wheel-glow {
@@ -887,9 +854,9 @@ body[data-theme="light"] .bj-table {
 
 /* ---- responsive ---- */
 @media (max-width: 620px) {
-  .rb-option { width: 100px; height: 84px; }
   .playing-card { width: 50px; height: 70px; font-size: 16px; }
   .roulette-wheel-outer { width: 180px; height: 180px; }
   .roulette-wheel { width: 180px; height: 180px; }
   .balance-bar-value { font-size: 20px; }
+  .balance-bar-item { min-width: 130px; }
 }
