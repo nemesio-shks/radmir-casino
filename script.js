@@ -1,49 +1,79 @@
-import { t, getLang, setLang, applyTranslations } from './i18n.js';
+import { t, getLang, setLang, applyTranslations, currencySymbols } from './i18n.js';
 
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-const STORAGE_KEY = 'casino_state_v1';
+// ---------- Simple local "accounts" storage (no backend, per-browser) ----------
+const USERS_KEY = 'casino_users_v1';
+const SESSION_KEY = 'casino_session_v1';
 
-function defaultState() {
+function loadUsers() {
+  try {
+    const raw = localStorage.getItem(USERS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveUsers(users) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+function defaultAccountState() {
   return {
     theme: 'dark',
+    currency: 'USD',
     balance: 1000,
     history: []
   };
 }
 
-let state = loadState();
-
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (typeof parsed.balance === 'number' && Array.isArray(parsed.history)) {
-        if (!parsed.theme) parsed.theme = 'dark';
-        return parsed;
-      }
-    }
-  } catch (e) { /* ignore */ }
-  return defaultState();
+// simple non-cryptographic hash, sufficient for local demo auth
+function hashPassword(pw) {
+  let h = 0;
+  for (let i = 0; i < pw.length; i++) {
+    h = (Math.imul(31, h) + pw.charCodeAt(i)) | 0;
+  }
+  return h.toString(36);
 }
 
+let users = loadUsers();
+let currentUsername = null;
+let state = null;
+
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (!currentUsername) return;
+  users[currentUsername].state = state;
+  saveUsers(users);
 }
 
 // ---------- DOM refs ----------
+const authCard = document.getElementById('authCard');
+const appContent = document.getElementById('appContent');
+const authForm = document.getElementById('authForm');
+const authTitle = document.getElementById('authTitle');
+const authError = document.getElementById('authError');
+const authSubmitBtn = document.getElementById('authSubmitBtn');
+const authSwitchText = document.getElementById('authSwitchText');
+const authSwitchLink = document.getElementById('authSwitchLink');
+const authUsername = document.getElementById('authUsername');
+const authPassword = document.getElementById('authPassword');
+const userNameLabel = document.getElementById('userNameLabel');
+const logoutBtn = document.getElementById('logoutBtn');
 const settingsBtn = document.getElementById('settingsBtn');
+
 const settingsModal = document.getElementById('settingsModal');
 const closeSettingsBtn = document.getElementById('closeSettingsBtn');
 const langSelect = document.getElementById('langSelect');
 const themeSelect = document.getElementById('themeSelect');
+const currencySelect = document.getElementById('currencySelect');
+const resetBtn = document.getElementById('resetBtn');
 
 const balanceLabel = document.getElementById('balanceLabel');
+const currencySymbolLabel = document.getElementById('currencySymbolLabel');
 const topUpBtn = document.getElementById('topUpBtn');
-const resetBtn = document.getElementById('resetBtn');
 
 const gamesBar = document.getElementById('gamesBar');
 const gameSections = {
@@ -56,6 +86,8 @@ const historyBody = document.getElementById('historyBody');
 const emptyMsg = document.getElementById('emptyMsg');
 const totalSum = document.getElementById('totalSum');
 
+let isRegisterMode = false;
+
 // ---------- Localization ----------
 langSelect.value = getLang();
 applyTranslations();
@@ -64,6 +96,93 @@ langSelect.addEventListener('change', () => {
   setLang(langSelect.value);
   renderAll();
 });
+
+// ---------- Auth ----------
+authSwitchLink.addEventListener('click', (e) => {
+  e.preventDefault();
+  isRegisterMode = !isRegisterMode;
+  authTitle.textContent = isRegisterMode ? t('registerTitle') : t('loginTitle');
+  authSubmitBtn.textContent = isRegisterMode ? t('registerBtn') : t('loginBtn');
+  authSwitchText.textContent = isRegisterMode ? t('haveAccount') : t('noAccount');
+  authSwitchLink.textContent = isRegisterMode ? t('loginLink') : t('registerLink');
+  authError.textContent = '';
+});
+
+authForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  authError.textContent = '';
+  const username = authUsername.value.trim();
+  const password = authPassword.value;
+
+  if (!username || !password) {
+    authError.textContent = t('authError_empty');
+    return;
+  }
+  if (password.length < 4) {
+    authError.textContent = t('authError_short');
+    return;
+  }
+
+  const key = username.toLowerCase();
+
+  if (isRegisterMode) {
+    if (users[key]) {
+      authError.textContent = t('authError_taken');
+      return;
+    }
+    users[key] = {
+      displayName: username,
+      passHash: hashPassword(password),
+      state: defaultAccountState()
+    };
+    saveUsers(users);
+    loginAs(key);
+  } else {
+    const account = users[key];
+    if (!account) {
+      authError.textContent = t('authError_notfound');
+      return;
+    }
+    if (account.passHash !== hashPassword(password)) {
+      authError.textContent = t('authError_wrongpass');
+      return;
+    }
+    loginAs(key);
+  }
+});
+
+function loginAs(key) {
+  currentUsername = key;
+  localStorage.setItem(SESSION_KEY, key);
+  state = users[key].state || defaultAccountState();
+  if (!state.theme) state.theme = 'dark';
+  if (!state.currency) state.currency = 'USD';
+  users[key].state = state;
+  saveUsers(users);
+
+  authCard.classList.add('hidden');
+  appContent.classList.remove('hidden');
+  settingsBtn.classList.remove('hidden');
+  userNameLabel.textContent = users[key].displayName;
+  authForm.reset();
+  renderAll();
+}
+
+logoutBtn.addEventListener('click', () => {
+  currentUsername = null;
+  state = null;
+  localStorage.removeItem(SESSION_KEY);
+  authCard.classList.remove('hidden');
+  appContent.classList.add('hidden');
+  settingsBtn.classList.add('hidden');
+});
+
+function tryAutoLogin() {
+  const savedKey = localStorage.getItem(SESSION_KEY);
+  if (savedKey && users[savedKey]) {
+    loginAs(savedKey);
+  }
+}
 
 // ---------- Settings modal ----------
 settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
@@ -83,9 +202,17 @@ themeSelect.addEventListener('change', () => {
   saveState();
 });
 
+currencySelect.addEventListener('change', () => {
+  state.currency = currencySelect.value;
+  renderBalance();
+  saveState();
+});
+
 // ---------- Balance / top up / reset ----------
 function renderBalance() {
   balanceLabel.textContent = formatMoney(state.balance);
+  currencySymbolLabel.textContent = currencySymbols[state.currency] || state.currency;
+  currencySelect.value = state.currency || 'USD';
 }
 
 function formatMoney(n) {
@@ -104,9 +231,11 @@ topUpBtn.addEventListener('click', () => {
 
 resetBtn.addEventListener('click', () => {
   if (!confirm(t('resetConfirm'))) return;
-  state = defaultState();
+  state.balance = 1000;
+  state.history = [];
   saveState();
   renderAll();
+  settingsModal.classList.add('hidden');
 });
 
 // ---------- Games tab switching ----------
@@ -196,7 +325,6 @@ function freshDeck() {
       deck.push({ rank, suit: suit.s, color: suit.color });
     });
   });
-  // shuffle
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -320,12 +448,7 @@ bjDoubleBtn.addEventListener('click', () => {
   saveState();
   bjPlayerHand.push(bjDeck.pop());
   renderBjTable(true);
-  const score = handScore(bjPlayerHand);
-  if (score > 21) {
-    finishBjRound();
-  } else {
-    finishBjRound();
-  }
+  finishBjRound();
 });
 
 function finishBjRound() {
@@ -378,16 +501,48 @@ function finishBjRound() {
 }
 
 // ============================================================
-// RED / BLACK
+// ROULETTE (European, 0-36)
 // ============================================================
 const rbBetInput = document.getElementById('rbBetInput');
 const rbChipRow = document.getElementById('rbChipRow');
 const rbOptions = document.querySelectorAll('.rb-option');
 const rbSpinBtn = document.getElementById('rbSpinBtn');
-const rbBall = document.getElementById('rbBall');
 const rbResult = document.getElementById('rbResult');
+const rouletteWheel = document.getElementById('rouletteWheel');
+const rouletteBall = document.getElementById('rouletteBall');
+const rouletteCenterNumber = document.getElementById('rouletteCenterNumber');
+const rouletteTable = document.getElementById('rouletteTable');
 
 chipRowHandler(rbChipRow, rbBetInput);
+
+// European roulette wheel order (0-36) as laid out on a real wheel
+const WHEEL_ORDER = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+
+function numberColor(n) {
+  if (n === 0) return 'green';
+  return RED_NUMBERS.has(n) ? 'red' : 'black';
+}
+
+// build the mini table grid (0 + 1..36 in 3 columns like a real roulette table)
+function buildRouletteTable() {
+  rouletteTable.innerHTML = '';
+  const zero = document.createElement('div');
+  zero.className = 'roulette-cell green';
+  zero.style.gridColumn = '1 / span 13';
+  zero.textContent = '0';
+  zero.setAttribute('data-num', '0');
+  rouletteTable.appendChild(zero);
+
+  for (let n = 1; n <= 36; n++) {
+    const cell = document.createElement('div');
+    cell.className = 'roulette-cell ' + numberColor(n);
+    cell.textContent = n;
+    cell.setAttribute('data-num', n);
+    rouletteTable.appendChild(cell);
+  }
+}
+buildRouletteTable();
 
 let rbSelectedColor = null;
 rbOptions.forEach(opt => {
@@ -397,7 +552,8 @@ rbOptions.forEach(opt => {
   });
 });
 
-const RB_COLORS = ['red', 'black', 'red', 'black', 'green', 'red', 'black', 'red', 'black', 'red', 'black', 'red', 'black', 'green'];
+let rbWheelRotation = 0;
+let rbBallRotation = 0;
 
 rbSpinBtn.addEventListener('click', () => {
   const bet = parseFloat(rbBetInput.value);
@@ -419,14 +575,37 @@ rbSpinBtn.addEventListener('click', () => {
   saveState();
 
   rbSpinBtn.disabled = true;
-  rbBall.classList.remove('spin');
-  void rbBall.offsetWidth;
-  rbBall.classList.add('spin');
+  rbResult.textContent = t('rbSpinning');
+  rbResult.style.color = 'var(--muted)';
+  rouletteWheel.classList.add('spinning');
+  rouletteCenterNumber.textContent = '?';
+  rouletteTable.querySelectorAll('.roulette-cell').forEach(c => c.classList.remove('highlight'));
+
+  // pick winning number
+  const winningNumber = Math.floor(Math.random() * 37);
+  const segmentAngle = 360 / WHEEL_ORDER.length;
+  const winningIndex = WHEEL_ORDER.indexOf(winningNumber);
+
+  // spin wheel several full turns and land the winning segment at the top pointer
+  const wheelExtraTurns = 4 + Math.floor(Math.random() * 3);
+  const targetWheelAngle = -(winningIndex * segmentAngle);
+  rbWheelRotation += 360 * wheelExtraTurns;
+  const finalWheelRotation = rbWheelRotation + targetWheelAngle - (rbWheelRotation % 360);
+  rbWheelRotation = finalWheelRotation;
+  rouletteWheel.style.transform = `rotate(${rbWheelRotation}deg)`;
+
+  // ball spins opposite direction, several turns
+  const ballExtraTurns = 6 + Math.floor(Math.random() * 3);
+  rbBallRotation += 360 * ballExtraTurns + (Math.random() * 360);
+  rouletteBall.style.transform = `rotate(${rbBallRotation}deg) translateX(0)`;
 
   setTimeout(() => {
-    const outcome = RB_COLORS[Math.floor(Math.random() * RB_COLORS.length)];
-    rbBall.className = 'rb-result-ball spin ' + outcome;
-    rbBall.textContent = outcome === 'red' ? '🔴' : (outcome === 'black' ? '⚫' : '🟢');
+    rouletteWheel.classList.remove('spinning');
+    rouletteCenterNumber.textContent = winningNumber;
+
+    const outcome = numberColor(winningNumber);
+    const cell = rouletteTable.querySelector(`.roulette-cell[data-num="${winningNumber}"]`);
+    if (cell) cell.classList.add('highlight');
 
     let delta;
     const colorLabel = t('color' + outcome.charAt(0).toUpperCase() + outcome.slice(1));
@@ -435,18 +614,18 @@ rbSpinBtn.addEventListener('click', () => {
       const multiplier = outcome === 'green' ? 14 : 2;
       delta = bet * multiplier - bet;
       state.balance += bet * multiplier;
-      rbResult.textContent = t('rbWin', { color: colorLabel }) + ` (+${formatMoney(delta)})`;
+      rbResult.textContent = t('rbWin', { number: winningNumber, color: colorLabel }) + ` (+${formatMoney(delta)})`;
       rbResult.style.color = 'var(--profit-pos)';
     } else {
       delta = -bet;
-      rbResult.textContent = t('rbLose', { color: colorLabel });
+      rbResult.textContent = t('rbLose', { number: winningNumber, color: colorLabel });
       rbResult.style.color = 'var(--profit-neg)';
     }
 
     renderBalance();
     addHistory('redblack', t('tabRedBlack'), bet, rbResult.textContent, delta);
     rbSpinBtn.disabled = false;
-  }, 650);
+  }, 3300);
 });
 
 // ============================================================
@@ -464,7 +643,6 @@ chipRowHandler(diceChipRow, diceBetInput);
 
 const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
-// payout multiplier per sum (based on rough probability, house edge included)
 const DICE_PAYOUTS = {
   2: 30, 3: 15, 4: 10, 5: 7, 6: 5, 7: 4, 8: 5, 9: 7, 10: 10, 11: 15, 12: 30
 };
@@ -572,4 +750,4 @@ function renderAll() {
   renderHistory();
 }
 
-renderAll();
+tryAutoLogin();

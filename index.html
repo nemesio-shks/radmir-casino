@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Казино Radmir</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎰</text></svg>">
+<title>Симулятор Казино</title>
+<link rel="icon" type="image/png" href="assets/radmirlogo.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,163 +12,206 @@
   <div class="bg-particles" id="bgParticles"></div>
 </div>
 
-<div class="corner-logo">🎰</div>
+<img src="assets/radmirlogo.png" alt="logo" class="corner-logo">
 
 <div class="app">
   <header class="top-header">
-    <h1 data-i18n="appTitle">Казино Radmir</h1>
+    <h1 data-i18n="appTitle">Симулятор Казино</h1>
     <div class="top-controls">
-      <button class="icon-btn" id="settingsBtn" title="Налаштування">⚙️</button>
+      <button class="icon-btn hidden" id="settingsBtn" title="Налаштування">⚙️</button>
     </div>
   </header>
 
-  <div class="user-bar">
-    <div class="user-bar-left">
-      <span class="brand-logo shine">🎰</span>
-      <span class="balance-badge">💰 <span id="balanceLabel">1000</span></span>
+  <!-- ============ AUTH SCREEN ============ -->
+  <section class="card auth-card" id="authCard">
+    <div class="auth-logo-row">
+      <img src="assets/r_rp.png" alt="R_RP" class="brand-logo-img shine">
     </div>
-    <div class="user-bar-right">
-      <button class="btn btn-add-project" id="topUpBtn" data-i18n="topUpBtn">+ Поповнити</button>
-      <button class="btn btn-add-project" id="resetBtn" data-i18n="logoutBtn">Скинути акаунт</button>
+    <h2 id="authTitle" data-i18n="loginTitle">Вхід у кабінет</h2>
+    <form id="authForm">
+      <div class="field">
+        <label for="authUsername" data-i18n="usernameLabel">Нікнейм</label>
+        <input type="text" id="authUsername" data-i18n-placeholder="usernamePlaceholder" placeholder="Ваш нікнейм" maxlength="20" required>
+      </div>
+      <div class="field">
+        <label for="authPassword" data-i18n="password">Пароль</label>
+        <input type="password" id="authPassword" data-i18n-placeholder="passwordPlaceholder" placeholder="мінімум 4 символи" required minlength="4">
+      </div>
+      <p class="auth-error" id="authError"></p>
+      <button type="submit" class="btn btn-primary" id="authSubmitBtn" data-i18n="loginBtn">Увійти</button>
+      <p class="auth-switch">
+        <span id="authSwitchText" data-i18n="noAccount">Немає акаунта?</span>
+        <a href="#" id="authSwitchLink" data-i18n="registerLink">Зареєструватися</a>
+      </p>
+    </form>
+  </section>
+
+  <!-- ============ APP CONTENT (after login) ============ -->
+  <div id="appContent" class="hidden">
+    <div class="user-bar">
+      <div class="user-bar-left">
+        <img src="assets/r_rp.png" alt="R_RP" class="brand-logo-img shine">
+        <span id="userNameLabel" class="user-name-label"></span>
+      </div>
+      <div class="user-bar-right">
+        <button class="btn btn-add-project" id="logoutBtn" data-i18n="logoutBtn">Вийти</button>
+      </div>
     </div>
+
+    <div class="balance-bar card">
+      <div class="balance-bar-label" data-i18n="totalBalanceLabel">Загальний баланс гравця</div>
+      <div class="balance-bar-value">💰 <span id="balanceLabel">1000</span> <span id="currencySymbolLabel">$</span></div>
+      <button class="btn btn-gold" id="topUpBtn" data-i18n="topUpBtn">+ Поповнити</button>
+    </div>
+
+    <div class="games-bar" id="gamesBar">
+      <div class="game-tab active" data-game="blackjack"><span data-i18n="tabBlackjack">🃏 Блекджек</span></div>
+      <div class="game-tab" data-game="redblack"><span data-i18n="tabRedBlack">🎡 Рулетка</span></div>
+      <div class="game-tab" data-game="dice"><span data-i18n="tabDice">🎲 Кості</span></div>
+    </div>
+
+    <main>
+      <!-- ============ BLACKJACK ============ -->
+      <section class="card" id="blackjackGame">
+        <h2 data-i18n="tabBlackjack">🃏 Блекджек</h2>
+
+        <div class="bet-row">
+          <div class="field">
+            <label for="bjBetInput" data-i18n="betLabel">Розмір ставки</label>
+            <input type="text" inputmode="decimal" id="bjBetInput" placeholder="100">
+          </div>
+          <button class="btn btn-primary" id="bjDealBtn" data-i18n="dealBtn">Роздати</button>
+        </div>
+        <div class="chip-row" id="bjChipRow">
+          <div class="chip" data-amount="50">50</div>
+          <div class="chip" data-amount="100">100</div>
+          <div class="chip" data-amount="500">500</div>
+          <div class="chip" data-amount="1000">1000</div>
+        </div>
+
+        <div class="bj-table">
+          <div class="bj-hand-label">
+            <span data-i18n="dealerLabel">Дилер</span>
+            <span class="score" id="bjDealerScore">0</span>
+          </div>
+          <div class="bj-cards" id="bjDealerCards"></div>
+
+          <div class="bj-hand-label">
+            <span data-i18n="playerLabel">Гравець</span>
+            <span class="score" id="bjPlayerScore">0</span>
+          </div>
+          <div class="bj-cards" id="bjPlayerCards"></div>
+        </div>
+
+        <div class="bj-result" id="bjResult"></div>
+
+        <div class="bj-controls">
+          <button class="btn btn-add-project" id="bjHitBtn" data-i18n="hitBtn" disabled>Ще карту</button>
+          <button class="btn btn-add-project" id="bjStandBtn" data-i18n="standBtn" disabled>Досить</button>
+          <button class="btn btn-add-project" id="bjDoubleBtn" data-i18n="doubleBtn" disabled>Подвоїти</button>
+        </div>
+      </section>
+
+      <!-- ============ ROULETTE ============ -->
+      <section class="card hidden" id="redblackGame">
+        <h2 data-i18n="rbTitle">Європейська рулетка</h2>
+
+        <div class="roulette-wrap">
+          <div class="roulette-wheel-outer">
+            <div class="roulette-wheel" id="rouletteWheel"></div>
+            <div class="roulette-ball-track">
+              <div class="roulette-ball" id="rouletteBall"></div>
+            </div>
+            <div class="roulette-center">
+              <span id="rouletteCenterNumber">?</span>
+            </div>
+          </div>
+          <div class="roulette-table" id="rouletteTable"></div>
+        </div>
+
+        <div class="bet-row">
+          <div class="field">
+            <label for="rbBetInput" data-i18n="betLabel">Розмір ставки</label>
+            <input type="text" inputmode="decimal" id="rbBetInput" placeholder="100">
+          </div>
+        </div>
+        <div class="chip-row" id="rbChipRow">
+          <div class="chip" data-amount="50">50</div>
+          <div class="chip" data-amount="100">100</div>
+          <div class="chip" data-amount="500">500</div>
+          <div class="chip" data-amount="1000">1000</div>
+        </div>
+
+        <p style="text-align:center;color:var(--muted);font-size:13px;" data-i18n="rbPickTitle">Оберіть колір</p>
+        <div class="rb-wheel">
+          <div class="rb-option red" data-color="red" data-i18n="rbRed">Червоне</div>
+          <div class="rb-option black" data-color="black" data-i18n="rbBlack">Чорне</div>
+          <div class="rb-option green" data-color="green" data-i18n="rbGreen">Зеро (x14)</div>
+        </div>
+
+        <div style="text-align:center;">
+          <button class="btn btn-primary" id="rbSpinBtn" data-i18n="rbSpinBtn">Крутити колесо</button>
+        </div>
+        <div class="bj-result" id="rbResult"></div>
+      </section>
+
+      <!-- ============ DICE ============ -->
+      <section class="card hidden" id="diceGame">
+        <h2 data-i18n="tabDice">🎲 Кості</h2>
+        <p style="text-align:center;color:var(--muted);font-size:13px;" data-i18n="diceTitle">Вгадайте суму кубиків (2-12)</p>
+
+        <div class="dice-row">
+          <div class="die" id="die1">🎲</div>
+          <div class="die" id="die2">🎲</div>
+        </div>
+
+        <div class="bet-row" style="justify-content:center;">
+          <div class="field">
+            <label for="diceBetInput" data-i18n="betLabel">Розмір ставки</label>
+            <input type="text" inputmode="decimal" id="diceBetInput" placeholder="100">
+          </div>
+        </div>
+        <div class="chip-row" id="diceChipRow" style="justify-content:center;">
+          <div class="chip" data-amount="50">50</div>
+          <div class="chip" data-amount="100">100</div>
+          <div class="chip" data-amount="500">500</div>
+          <div class="chip" data-amount="1000">1000</div>
+        </div>
+
+        <div class="dice-options" id="diceOptions"></div>
+
+        <div style="text-align:center;">
+          <button class="btn btn-primary" id="diceRollBtn" data-i18n="diceRollBtn">Кинути кості</button>
+        </div>
+        <div class="bj-result" id="diceResult"></div>
+      </section>
+
+      <!-- ============ HISTORY ============ -->
+      <section class="card history-card">
+        <h2 data-i18n="historyTitle">Історія ставок</h2>
+        <div class="table-wrap">
+          <table id="historyTable">
+            <thead>
+              <tr>
+                <th data-i18n="thGame">Гра</th>
+                <th data-i18n="thBet">Ставка</th>
+                <th data-i18n="thResult">Результат</th>
+                <th data-i18n="thBalance">Баланс після</th>
+                <th data-i18n="thTime">Час</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+          <p id="emptyMsg" class="empty-msg" data-i18n="emptyHistory">Ще немає жодної ставки</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="total-bar">
+      <span data-i18n="totalLabel">Загальний виграш/програш:</span>
+      <span id="totalSum" class="total-sum">0</span>
+    </footer>
   </div>
-
-  <div class="games-bar" id="gamesBar">
-    <div class="game-tab active" data-game="blackjack"><span data-i18n="tabBlackjack">🃏 Блекджек</span></div>
-    <div class="game-tab" data-game="redblack"><span data-i18n="tabRedBlack">🎡 Чорне/Червоне</span></div>
-    <div class="game-tab" data-game="dice"><span data-i18n="tabDice">🎲 Кості</span></div>
-  </div>
-
-  <main>
-    <!-- ============ BLACKJACK ============ -->
-    <section class="card" id="blackjackGame">
-      <h2 data-i18n="tabBlackjack">🃏 Блекджек</h2>
-
-      <div class="bet-row">
-        <div class="field">
-          <label for="bjBetInput" data-i18n="betLabel">Розмір ставки</label>
-          <input type="text" inputmode="decimal" id="bjBetInput" placeholder="100">
-        </div>
-        <button class="btn btn-primary" id="bjDealBtn" data-i18n="dealBtn">Роздати</button>
-      </div>
-      <div class="chip-row" id="bjChipRow">
-        <div class="chip" data-amount="50">50</div>
-        <div class="chip" data-amount="100">100</div>
-        <div class="chip" data-amount="500">500</div>
-        <div class="chip" data-amount="1000">1000</div>
-      </div>
-
-      <div class="bj-table">
-        <div class="bj-hand-label">
-          <span data-i18n="dealerLabel">Дилер</span>
-          <span class="score" id="bjDealerScore">0</span>
-        </div>
-        <div class="bj-cards" id="bjDealerCards"></div>
-
-        <div class="bj-hand-label">
-          <span data-i18n="playerLabel">Гравець</span>
-          <span class="score" id="bjPlayerScore">0</span>
-        </div>
-        <div class="bj-cards" id="bjPlayerCards"></div>
-      </div>
-
-      <div class="bj-result" id="bjResult"></div>
-
-      <div class="bj-controls">
-        <button class="btn btn-add-project" id="bjHitBtn" data-i18n="hitBtn" disabled>Ще карту</button>
-        <button class="btn btn-add-project" id="bjStandBtn" data-i18n="standBtn" disabled>Досить</button>
-        <button class="btn btn-add-project" id="bjDoubleBtn" data-i18n="doubleBtn" disabled>Подвоїти</button>
-      </div>
-    </section>
-
-    <!-- ============ RED / BLACK ============ -->
-    <section class="card hidden" id="redblackGame">
-      <h2 data-i18n="tabRedBlack">🎡 Чорне/Червоне</h2>
-
-      <div class="rb-result-ball" id="rbBall">?</div>
-
-      <div class="bet-row">
-        <div class="field">
-          <label for="rbBetInput" data-i18n="betLabel">Розмір ставки</label>
-          <input type="text" inputmode="decimal" id="rbBetInput" placeholder="100">
-        </div>
-      </div>
-      <div class="chip-row" id="rbChipRow">
-        <div class="chip" data-amount="50">50</div>
-        <div class="chip" data-amount="100">100</div>
-        <div class="chip" data-amount="500">500</div>
-        <div class="chip" data-amount="1000">1000</div>
-      </div>
-
-      <p style="text-align:center;color:var(--muted);font-size:13px;" data-i18n="rbPickTitle">Оберіть колір</p>
-      <div class="rb-wheel">
-        <div class="rb-option red" data-color="red" data-i18n="rbRed">Червоне</div>
-        <div class="rb-option black" data-color="black" data-i18n="rbBlack">Чорне</div>
-        <div class="rb-option green" data-color="green" data-i18n="rbGreen">Зеро (x14)</div>
-      </div>
-
-      <div style="text-align:center;">
-        <button class="btn btn-primary" id="rbSpinBtn" data-i18n="rbSpinBtn">Крутити</button>
-      </div>
-      <div class="bj-result" id="rbResult"></div>
-    </section>
-
-    <!-- ============ DICE ============ -->
-    <section class="card hidden" id="diceGame">
-      <h2 data-i18n="tabDice">🎲 Кості</h2>
-      <p style="text-align:center;color:var(--muted);font-size:13px;" data-i18n="diceTitle">Вгадайте суму кубиків (2-12)</p>
-
-      <div class="dice-row">
-        <div class="die" id="die1">🎲</div>
-        <div class="die" id="die2">🎲</div>
-      </div>
-
-      <div class="bet-row" style="justify-content:center;">
-        <div class="field">
-          <label for="diceBetInput" data-i18n="betLabel">Розмір ставки</label>
-          <input type="text" inputmode="decimal" id="diceBetInput" placeholder="100">
-        </div>
-      </div>
-      <div class="chip-row" id="diceChipRow" style="justify-content:center;">
-        <div class="chip" data-amount="50">50</div>
-        <div class="chip" data-amount="100">100</div>
-        <div class="chip" data-amount="500">500</div>
-        <div class="chip" data-amount="1000">1000</div>
-      </div>
-
-      <div class="dice-options" id="diceOptions"></div>
-
-      <div style="text-align:center;">
-        <button class="btn btn-primary" id="diceRollBtn" data-i18n="diceRollBtn">Кинути кості</button>
-      </div>
-      <div class="bj-result" id="diceResult"></div>
-    </section>
-
-    <!-- ============ HISTORY ============ -->
-    <section class="card history-card">
-      <h2 data-i18n="historyTitle">Історія ставок</h2>
-      <div class="table-wrap">
-        <table id="historyTable">
-          <thead>
-            <tr>
-              <th data-i18n="thGame">Гра</th>
-              <th data-i18n="thBet">Ставка</th>
-              <th data-i18n="thResult">Результат</th>
-              <th data-i18n="thBalance">Баланс після</th>
-              <th data-i18n="thTime">Час</th>
-            </tr>
-          </thead>
-          <tbody id="historyBody"></tbody>
-        </table>
-        <p id="emptyMsg" class="empty-msg" data-i18n="emptyHistory">Ще немає жодної ставки</p>
-      </div>
-    </section>
-  </main>
-
-  <footer class="total-bar">
-    <span data-i18n="totalLabel">Загальний виграш/програш:</span>
-    <span id="totalSum" class="total-sum">0</span>
-  </footer>
 </div>
 
 <!-- Модалка налаштувань -->
@@ -197,6 +240,28 @@
         <option value="light" data-i18n="themeLight">Світла</option>
         <option value="purple" data-i18n="themePurple">Фіолетова</option>
       </select>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-row-label">
+        <span class="settings-icon">💱</span>
+        <span data-i18n="settingsCurrency">Валюта</span>
+      </div>
+      <select id="currencySelect" class="mini-select">
+        <option value="USD">$ USD</option>
+        <option value="EUR">€ EUR</option>
+        <option value="UAH">₴ UAH</option>
+        <option value="RUB">₽ RUB</option>
+        <option value="CHIPS">🪙 Фішки</option>
+      </select>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-row-label">
+        <span class="settings-icon">♻️</span>
+        <span data-i18n="resetBalanceBtn">Скинути баланс</span>
+      </div>
+      <button class="btn btn-add-project" id="resetBtn" data-i18n="resetBalanceBtn">Скинути баланс</button>
     </div>
 
     <button class="btn btn-add-project modal-close-btn" id="closeSettingsBtn" data-i18n="close">Закрити</button>
